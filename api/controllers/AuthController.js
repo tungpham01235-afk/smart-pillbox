@@ -36,15 +36,16 @@ module.exports = {
                 existingUser.otp = otp;
                 await existingUser.save();
 
-                await emailService.sendMail(
+                // KHÔNG DÙNG AWAIT: Đẩy tác vụ gửi Mail chạy ngầm để giải phóng luồng xử lý ngay lập tức
+                emailService.sendMail(
                     email, 
                     'Mã xác thực lại tài khoản Smart Pillbox', 
                     `Bạn vừa yêu cầu đăng ký lại. Mã OTP mới của bạn là: ${otp}`
-                );
+                ).catch(err => console.error("❌ Lỗi gửi mail ngầm (Kịch bản B):", err));
 
                 return res.status(200).json({ 
                     status: "PENDING_VERIFICATION",
-                    message: 'Email đã đăng ký trước đó nhưng chưa xác thực. Mã OTP mới đã được gửi lại vào hòm thư!',
+                    message: 'Email đã đăng ký trước đó nhưng chưa xác thực. Mã OTP mới đang được gửi vào hòm thư!',
                     email: existingUser.email
                 });
             }
@@ -60,12 +61,12 @@ module.exports = {
 
             await newUser.save();
 
-            // Gửi OTP qua email cho tài khoản mới tinh
-            await emailService.sendMail(
+            // KHÔNG DÙNG AWAIT: Đẩy tác vụ gửi Mail chạy ngầm giúp ngăn chặn triệt để lỗi Connection Timeout trên Render Free
+            emailService.sendMail(
                 email, 
                 'Mã xác thực tài khoản Smart Pillbox', 
                 `Chào mừng bạn đến với Smart Pillbox. Mã OTP của bạn là: ${otp}`
-            );
+            ).catch(err => console.error("❌ Lỗi gửi mail ngầm (Kịch bản C):", err));
 
             res.status(201).json({ 
                 status: "NEW_REGISTRATION",
