@@ -1,4 +1,7 @@
 require('dotenv').config(); // Load cấu hình từ file .env
+// Ép Node.js ưu tiên phân giải tên miền sang IPv4 thay vì IPv6 để tránh lỗi ENETUNREACH trên Render
+const dns = require('dns');
+dns.setDefaultResultOrder('ipv4first');
 const express = require('express');
 const cors = require('cors'); // 1. Khai báo thư viện CORS để sửa lỗi chặn trình duyệt
 const app = express();
