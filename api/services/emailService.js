@@ -1,11 +1,17 @@
 const nodemailer = require('nodemailer');
 
+// Quay lại cấu hình Gmail gốc của bạn kèm theo tăng mạnh thời gian chờ Timeout
 const transporter = nodemailer.createTransport({
-    service: 'gmail', // Chuyển sang dịch vụ Gmail trực tiếp để bỏ qua Sandbox Elastic Email
+    service: 'gmail',
     auth: {
-        user: 'tungpham01235@gmail.com',     // Email của bạn
-        pass: 'cgjjixvhbtzvztwn'             // Mật khẩu ứng dụng 16 ký tự viết liền
-    }
+        user: 'tungpham01235@gmail.com',     // Email hệ thống của bạn
+        pass: 'cgjjixvhbtzvztwn'             // Mật khẩu ứng dụng 16 ký tự của bạn (viết liền)
+    },
+    // Tăng thời gian Timeout để Render có đủ thời gian xử lý kết nối mạng
+    connectionTimeout: 50000, // 50 giây chờ kết nối (mặc định chỉ có vài giây)
+    greetingTimeout: 50000,   // 50 giây chờ phản hồi chào hỏi từ máy chủ Google
+    timeout: 50000,           // 50 giây cho toàn bộ tiến trình gửi
+    pool: true                // Sử dụng kết nối duy trì (Pool) để các lượt gửi sau không phải kết nối lại từ đầu
 });
 
 module.exports = {
@@ -15,6 +21,8 @@ module.exports = {
                 from: '"Smart Pillbox" <tungpham01235@gmail.com>', 
                 to: to,
                 subject: `[Smart Pillbox] ${subject}`,
+                // Giữ cả dạng text và html cũ để đảm bảo mail trường hay mail thường đều đọc được
+                text: text, 
                 html: `
                     <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
                         <h2 style="color: #007bff; text-align: center;">Xác Thực Tài Khoản Smart Pillbox</h2>
@@ -34,7 +42,7 @@ module.exports = {
                     console.error("❌ Lỗi gửi Mail chi tiết nội bộ:", error);
                     return reject(error);
                 }
-                console.log("🚀 Mail hệ thống đã được gửi đi thành công qua Gmail:", info.response);
+                console.log("🚀 Mail đã được gửi đi thành công qua Gmail:", info.response);
                 resolve(info);
             });
         });

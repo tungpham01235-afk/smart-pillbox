@@ -1,27 +1,4 @@
 require('dotenv').config(); // Load cấu hình từ file .env
-
-// =========================================================================
-// 🛠️ BẢN VÁ CƯỠNG CHẾ MẠNG IPV4 TOÀN CỤC - ĐÁNH BAY LỖI ENETUNREACH TRÊN RENDER
-const dns = require('dns');
-if (dns.setDefaultResultOrder) {
-    dns.setDefaultResultOrder('ipv4first');
-} else {
-    // Giải pháp dự phòng bọc hàm lookup nếu Node.js trên Render là phiên bản cũ
-    const { lookup } = dns;
-    dns.lookup = (hostname, options, callback) => {
-        if (typeof options === 'function') {
-            callback = options;
-            options = {};
-        } else if (typeof options === 'number') {
-            options = { family: options };
-        }
-        options = options || {};
-        options.family = 4; // Cưỡng chế socket hệ thống chỉ sử dụng IPv4
-        return lookup(hostname, options, callback);
-    };
-}
-// =========================================================================
-
 const express = require('express');
 const cors = require('cors'); // 1. Khai báo thư viện CORS để sửa lỗi chặn trình duyệt
 const app = express();
