@@ -1,20 +1,18 @@
 const nodemailer = require('nodemailer');
 
-// Cấu hình ép buộc sử dụng kết nối IPv4 (family: 4) để khắc phục triệt để lỗi ENETUNREACH trên Render
+// Cấu hình Nodemailer sử dụng tên miền chuẩn của Gmail (Sẽ được xử lý IPv4 qua bản vá tại server.js)
 const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com', // Dùng lại tên miền chuẩn của Gmail
-    port: 465,
-    secure: true, // Cổng 465 yêu cầu secure là true
-    // Ép buộc kết nối ở tầng Socket của hệ thống
-    family: 4,    // 4 = Cưỡng chế chỉ sử dụng IPv4; loại bỏ hoàn toàn IPv6
+    host: 'smtp.gmail.com', // Tên miền gốc chuẩn của Google
+    port: 465,              // Cổng bảo mật mã hóa SSL/TLS
+    secure: true,           // Luôn luôn là true đối với cổng 465
     auth: {
-        user: 'tungpham01235@gmail.com', // Email của bạn
+        user: 'tungpham01235@gmail.com', // Email hệ thống của bạn
         pass: 'alxu pxyc ptjd tded'       // Mật khẩu ứng dụng 16 ký tự
     }
 });
 
 module.exports = {
-    // Hàm gửi Email dạng Promise chuẩn để chạy ngầm
+    // Hàm gửi Email dạng Promise chuẩn phục vụ cho các tác vụ chạy ngầm bên AuthController
     sendMail: (to, subject, text) => {
         return new Promise((resolve, reject) => {
             transporter.sendMail({
