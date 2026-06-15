@@ -2,7 +2,7 @@
 const mongoose = require('mongoose');
 
 // Kích hoạt chế độ debug để theo dõi các câu lệnh truy vấn xuống MongoDB trong Terminal
-mongoose.set('debug', true);
+mongoose.set('debug', false);
 
 // Kết nối database dựa trên chuỗi URL bảo mật trong .env
 // Nếu process.env.MONGODB_URI bị lỗi, hãy đảm bảo bạn đã load file .env (dùng dotenv)
