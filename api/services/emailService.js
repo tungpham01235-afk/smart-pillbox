@@ -1,18 +1,23 @@
 const nodemailer = require('nodemailer');
 
-// Quay lại cấu hình Gmail gốc của bạn kèm theo tăng mạnh thời gian chờ Timeout
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-        user: 'tungpham01235@gmail.com',     // Email hệ thống của bạn
-        pass: 'cgjjixvhbtzvztwn'             // Mật khẩu ứng dụng 16 ký tự của bạn (viết liền)
+        user: 'tungpham01235@gmail.com',
+        pass: 'cgjjixvhbtzvztwn' // Mật khẩu ứng dụng của bạn
     },
-    // Tăng thời gian Timeout để Render có đủ thời gian xử lý kết nối mạng
-    connectionTimeout: 50000, // 50 giây chờ kết nối (mặc định chỉ có vài giây)
-    greetingTimeout: 50000,   // 50 giây chờ phản hồi chào hỏi từ máy chủ Google
-    timeout: 50000,           // 50 giây cho toàn bộ tiến trình gửi
-    pool: true                // Sử dụng kết nối duy trì (Pool) để các lượt gửi sau không phải kết nối lại từ đầu
+    // DÒNG QUAN TRỌNG NHẤT ĐỂ SỬA LỖI MẠNG:
+    // Ép buộc dùng IPv4 để tránh dải IPv6 không ổn định trên Render
+    family: 4, 
+    
+    // Tăng thời gian chờ để không bị timeout
+    connectionTimeout: 50000, 
+    greetingTimeout: 50000,
+    timeout: 50000,
+    pool: true
 });
+
+// ... giữ nguyên phần module.exports như cũ ...
 
 module.exports = {
     sendMail: (to, subject, text) => {
