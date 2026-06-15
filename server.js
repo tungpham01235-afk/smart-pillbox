@@ -1,5 +1,6 @@
 require('dotenv').config(); // Load cấu hình từ file .env
 const express = require('express');
+const cors = require('cors'); // 1. Khai báo thư viện CORS để sửa lỗi chặn trình duyệt
 const app = express();
 
 const port = process.env.PORT || 3000;
@@ -7,10 +8,14 @@ const port = process.env.PORT || 3000;
 // Kết nối Cơ sở dữ liệu MongoDB thông qua file cấu hình riêng
 const db = require('./api/db');
 
+// 2. Kích hoạt Middleware CORS (Bắt buộc phải đặt TRƯỚC khi định nghĩa routes)
+app.use(cors()); 
+
 // Middleware hỗ trợ đọc và bóc tách dữ liệu JSON gửi từ App lên
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(__dirname));
+
 // Nhúng toàn bộ bản đồ đường dẫn API vào server
 let routes = require('./api/routes');
 routes(app);
@@ -21,5 +26,6 @@ app.use(function(req, res) {
 });
 
 // Bật máy chủ lắng nghe kết nối
-app.listen(port);
-console.log('🚀 RESTful API Smart Pillbox Server started on: ' + port);
+app.listen(port, () => {
+    console.log('🚀 RESTful API Smart Pillbox Server started on port: ' + port);
+});
