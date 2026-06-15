@@ -1,12 +1,10 @@
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
-    host: 'smtp.elasticemail.com', //
-    port: 2525,                    //
-    secure: false, 
+    service: 'gmail', // Chuyển sang dịch vụ Gmail trực tiếp để bỏ qua Sandbox Elastic Email
     auth: {
-        user: 'tungpham01235@gmail.com', // Tài khoản Elastic Email của bạn
-        pass: '96D2A0D05BABF7725325F6C426E89FCF9FF0' // Đoạn mã mật khẩu SMTP vừa tạo
+        user: 'tungpham01235@gmail.com',     // Email của bạn
+        pass: 'cgjjixvhbtzvztwn'             // Mật khẩu ứng dụng 16 ký tự viết liền
     }
 });
 
@@ -36,7 +34,7 @@ module.exports = {
                     console.error("❌ Lỗi gửi Mail chi tiết nội bộ:", error);
                     return reject(error);
                 }
-                console.log("🚀 Mail hệ thống đã được gửi đi thành công:", info.response);
+                console.log("🚀 Mail hệ thống đã được gửi đi thành công qua Gmail:", info.response);
                 resolve(info);
             });
         });
