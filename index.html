@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Tủ Thuốc Thông Minh - Smart Pillbox</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        h1, h2 { text-align: center; color: #2c3e50; }
+        .auth-box { max-width: 400px; margin: 30px auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; background: #fafafa; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        button { width: 100%; padding: 12px; background-color: #3498db; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; font-weight: bold; }
+        button:hover { background-color: #2980b9; }
+        .toggle-link { text-align: center; margin-top: 15px; font-size: 14px; color: #3498db; cursor: pointer; }
+        .dashboard { display: none; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #2c3e50; color: white; }
+        .status-badge { padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; color: white; background-color: #2ecc71; }
+        .logout-btn { background-color: #e74c3c; width: auto; float: right; padding: 8px 15px; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🏥 SMART PILLBOX SYSTEM</h1>
+    <p style="text-align: center; color: #7f8c8d;">Hệ thống quản lý và giám sát tủ thuốc thông minh</p>
+
+    <div id="authSection" class="auth-box">
+        <h2 id="authTitle">Đăng Nhập Hệ Thống</h2>
+        <div class="form-group" id="nameGroup" style="display: none;">
+            <label>Họ và tên:</label>
+            <input type="text" id="authName" placeholder="Nhập họ và tên...">
+        </div>
+        <div class="form-group">
+            <label>Địa chỉ Email:</label>
+            <input type="email" id="authEmail" placeholder="Nhập email...">
+        </div>
+        <div class="form-group">
+            <label>Mật khẩu:</label>
+            <input type="password" id="authPassword" placeholder="Nhập mật khẩu...">
+        </div>
+        <button id="authBtn" onclick="handleAuth()">Đăng Nhập</button>
+        <div class="toggle-link" id="toggleAuth" onclick="switchAuthMode()">Chưa có tài khoản? Đăng ký ngay</div>
+    </div>
+
+    <div id="otpSection" class="auth-box" style="display: none;">
+        <h2>Xác Thực Tài Khoản</h2>
+        <p style="font-size: 14px; text-align: center;">Mã OTP đã được gửi đến email của bạn.</p>
+        <div class="form-group">
+            <label>Nhập mã OTP:</label>
+            <input type="text" id="otpInput" placeholder="Nhập mã 6 số...">
+        </div>
+        <button onclick="verifyOTP()">Xác Thực Ngay</button>
+    </div>
+
+    <div id="dashboardSection" class="dashboard">
+        <button class="logout-btn" onclick="handleLogout()">Đăng xuất</button>
+        <h2>📊 Lịch Sử Sử Dụng</h2>
+        <p>Xin chào, <strong id="userDisplayName"></strong>!</p>
+        <table id="logTable">
+            <thead>
+                <tr><th>Thời Gian</th><th>Vị Trí</th><th>Hành Động</th><th>Trạng Thái</th></tr>
+            </thead>
+            <tbody id="logTableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const API_BASE_URL = 'http://localhost:3000/api/auth';
+    let isLoginMode = true;
+    let pendingEmail = '';
+
+    function switchAuthMode() {
+        isLoginMode = !isLoginMode;
+        document.getElementById('authTitle').innerText = isLoginMode ? 'Đăng Nhập Hệ Thống' : 'Đăng Ký Tài Khoản';
+        document.getElementById('authBtn').innerText = isLoginMode ? 'Đăng Nhập' : 'Đăng Ký';
+        document.getElementById('nameGroup').style.display = isLoginMode ? 'none' : 'block';
+        document.getElementById('toggleAuth').innerText = isLoginMode ? 'Chưa có tài khoản? Đăng ký ngay' : 'Đã có tài khoản? Đăng nhập';
+    }
+
+    async function handleAuth() {
+        const email = document.getElementById('authEmail').value;
+        const password = document.getElementById('authPassword').value;
+        const name = document.getElementById('authName').value;
+
+        const endpoint = isLoginMode ? '/login' : '/signup';
+        const bodyData = isLoginMode ? { email, password } : { name, email, password };
+
+        try {
+            const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(bodyData)
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message);
+
+            if (isLoginMode) {
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('userEmail', email);
+                showDashboard(email);
+            } else {
+                pendingEmail = email;
+                document.getElementById('authSection').style.display = 'none';
+                document.getElementById('otpSection').style.display = 'block';
+            }
+        } catch (error) { alert(error.message); }
+    }
+
+    async function verifyOTP() {
+        const otp = document.getElementById('otpInput').value;
+        try {
+            const response = await fetch(`${API_BASE_URL}/verify`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: pendingEmail, otp })
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message);
+            
+            alert('Xác thực thành công! Hãy đăng nhập.');
+            document.getElementById('otpSection').style.display = 'none';
+            document.getElementById('authSection').style.display = 'block';
+            isLoginMode = true;
+            switchAuthMode();
+        } catch (error) { alert(error.message); }
+    }
+
+    function showDashboard(email) {
+        document.getElementById('authSection').style.display = 'none';
+        document.getElementById('dashboardSection').style.display = 'block';
+        document.getElementById('userDisplayName').innerText = email;
+    }
+
+    function handleLogout() {
+        localStorage.clear();
+        location.reload();
+    }
+</script>
+</body>
+</html>
