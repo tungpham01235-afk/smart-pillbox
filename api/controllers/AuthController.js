@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 const emailService = require('../services/emailService');
 
 module.exports = {
-    // 1. Logic Đăng ký tài khoản thông minh (Hỗ trợ Re-send OTP nếu chưa verified)
+    // 1. Logic Đăng ký tài khoản thông minh
     register: async (req, res) => {
         try {
             let { name, email, password } = req.body;
@@ -14,43 +14,36 @@ module.exports = {
                 return res.status(400).json({ message: 'Vui lòng điền đầy đủ thông tin!' });
             }
 
-            // Mã hóa mật khẩu chuẩn bị sẵn
             let salt = bcrypt.genSaltSync(10);
             let hashedPassword = bcrypt.hashSync(password, salt);
-
-            // Tạo mã OTP ngẫu nhiên 6 chữ số
             const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-            // KIỂM TRA LOGIC ĐỒNG BỘ:
             const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
 
             if (existingUser) {
-                // Kịch bản A: Email đã xác thực hoàn toàn rồi -> Chặn không cho đăng ký trùng
                 if (existingUser.isVerified) {
                     return res.status(400).json({ message: 'Email này đã được sử dụng và kích hoạt!' });
                 }
 
-                // Kịch bản B: Email đã đăng ký nhưng chưa OTP thành công -> Ghi đè thông tin mới và gửi lại OTP
                 existingUser.name = name;
                 existingUser.password = hashedPassword;
                 existingUser.otp = otp;
                 await existingUser.save();
 
-                // KHÔNG DÙNG AWAIT: Đẩy tác vụ gửi Mail chạy ngầm để giải phóng luồng xử lý ngay lập tức
-                emailService.sendMail(
+                // ĐÃ SỬA: Thêm AWAIT để đảm bảo luồng xử lý đồng bộ và ổn định
+                await emailService.sendMail(
                     email, 
                     'Mã xác thực lại tài khoản Smart Pillbox', 
                     `Bạn vừa yêu cầu đăng ký lại. Mã OTP mới của bạn là: ${otp}`
-                ).catch(err => console.error("❌ Lỗi gửi mail ngầm (Kịch bản B):", err));
+                );
 
                 return res.status(200).json({ 
                     status: "PENDING_VERIFICATION",
-                    message: 'Email đã đăng ký trước đó nhưng chưa xác thực. Mã OTP mới đang được gửi vào hòm thư!',
+                    message: 'Email đã đăng ký trước đó nhưng chưa xác thực. Mã OTP mới đã được gửi!',
                     email: existingUser.email
                 });
             }
 
-            // Kịch bản C: Người dùng mới tinh -> Tạo mới dữ liệu thông thường
             let newUser = new User({
                 name,
                 password: hashedPassword,
@@ -61,12 +54,12 @@ module.exports = {
 
             await newUser.save();
 
-            // KHÔNG DÙNG AWAIT: Đẩy tác vụ gửi Mail chạy ngầm giúp ngăn chặn triệt để lỗi Connection Timeout trên Render Free
-            emailService.sendMail(
+            // ĐÃ SỬA: Thêm AWAIT để đảm bảo luồng xử lý đồng bộ và ổn định
+            await emailService.sendMail(
                 email, 
                 'Mã xác thực tài khoản Smart Pillbox', 
                 `Chào mừng bạn đến với Smart Pillbox. Mã OTP của bạn là: ${otp}`
-            ).catch(err => console.error("❌ Lỗi gửi mail ngầm (Kịch bản C):", err));
+            );
 
             res.status(201).json({ 
                 status: "NEW_REGISTRATION",
@@ -74,7 +67,8 @@ module.exports = {
             });
 
         } catch (err) {
-            res.status(500).json({ message: 'Lỗi hệ thống: ' + err.message });
+            console.error("❌ Lỗi tại register controller:", err);
+            res.status(500).json({ message: 'Lỗi hệ thống trong quá trình gửi mail: ' + err.message });
         }
     },
 
@@ -90,23 +84,22 @@ module.exports = {
             const user = await User.findOne({ email: email.toLowerCase().trim() });
 
             if (!user) {
-                return res.status(404).json({ message: 'Không tìm thấy thông tin tài khoản cần xác thực!' });
+                return res.status(404).json({ message: 'Không tìm thấy thông tin tài khoản!' });
             }
             
             if (user.isVerified) {
-                return res.status(400).json({ message: 'Tài khoản này vốn đã được xác thực từ trước, bạn hãy tiến hành đăng nhập!' });
+                return res.status(400).json({ message: 'Tài khoản đã được xác thực trước đó!' });
             }
 
             if (user.otp !== otp.trim()) {
-                return res.status(400).json({ message: 'Mã OTP không chính xác hoặc đã hết hạn!' });
+                return res.status(400).json({ message: 'Mã OTP không chính xác!' });
             }
 
-            // Chuyển đổi trạng thái sang verified và dọn sạch trường OTP
             user.isVerified = true;
             user.otp = null; 
             await user.save();
 
-            res.status(200).json({ message: 'Xác thực tài khoản thành công! Bạn đã có thể đăng nhập ngay.' });
+            res.status(200).json({ message: 'Xác thực tài khoản thành công!' });
         } catch (err) {
             res.status(500).json({ message: 'Lỗi hệ thống: ' + err.message });
         }
@@ -118,25 +111,23 @@ module.exports = {
             let { email, password } = req.body;
 
             if (!email || !password) {
-                return res.status(400).json({ message: 'Vui lòng nhập đầy đủ email và mật khẩu!' });
+                return res.status(400).json({ message: 'Vui lòng nhập đầy đủ thông tin!' });
             }
 
             const user = await User.findOne({ email: email.toLowerCase().trim() });
             
-            if (!user) return res.status(400).json({ message: 'Email này chưa được đăng ký thành viên!' });
+            if (!user) return res.status(400).json({ message: 'Email này chưa được đăng ký!' });
             
-            // Nếu cố tình đăng nhập khi chưa xác thực OTP, chặn lại nhắc kiểm tra mail
             if (!user.isVerified) {
                 return res.status(403).json({ 
                     status: "UNVERIFIED",
-                    message: 'Tài khoản chưa được xác thực mã OTP! Vui lòng kiểm tra email hoặc nhấn đăng ký lại để nhận mã.' 
+                    message: 'Tài khoản chưa xác thực OTP!' 
                 });
             }
 
             let isMatch = bcrypt.compareSync(password, user.password);
-            if (!isMatch) return res.status(400).json({ message: 'Mật khẩu đăng nhập không chính xác!' });
+            if (!isMatch) return res.status(400).json({ message: 'Mật khẩu không chính xác!' });
 
-            // Ký token bảo mật thời hạn 30 ngày
             let token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'SECRET_BACKUP_KEY', { expiresIn: '30d' });
             
             res.status(200).json({
