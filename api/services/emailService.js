@@ -7,7 +7,7 @@ const transporter = nodemailer.createTransport({
     secure: true,           // Luôn luôn là true đối với cổng 465
     auth: {
         user: 'tungpham01235@gmail.com', // Email hệ thống của bạn
-        pass: 'alxu pxyc ptjd tded'       // Mật khẩu ứng dụng 16 ký tự
+        pass: 'cgjj ixvh btzv ztwn'       // Mật khẩu ứng dụng 16 ký tự mới vừa tạo
     }
 });
 
