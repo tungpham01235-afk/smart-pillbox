@@ -1,25 +1,18 @@
 const nodemailer = require('nodemailer');
 
-// Cấu hình Nodemailer cưỡng chế IPv4 kết hợp dịch vụ Gmail chuyên nghiệp
+// Thay đổi cấu hình dùng trực tiếp IPv4 của Gmail nhằm triệt tiêu hoàn toàn lỗi ENETUNREACH trên Render Free
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    // Bổ sung cấu hình kết nối để bỏ qua hoàn toàn rào cản IPv6 trên Render
-    connectionTimeout: 10000, // Giới hạn thời gian chờ kết nối (10 giây)
-    greetingTimeout: 10000,
-    socketTimeout: 10000,
-    dnsTimeout: 5000,
-    // Ép socket tạo kết nối trực tiếp không qua phân giải IPv6 lặp
-    tls: {
-        rejectUnauthorized: false // Bỏ qua lỗi chứng chỉ mạng nếu hạ tầng Render cấu hình chưa chuẩn
-    },
+    host: '74.125.200.108', // Địa chỉ IPv4 trực tiếp của máy chủ smtp.gmail.com
+    port: 465,
+    secure: true, // Cổng 465 bắt buộc cấu hình secure là true
     auth: {
         user: 'tungpham01235@gmail.com', // Email của bạn
-        pass: 'alxu pxyc ptjd tded'       // App Password 16 ký tự
+        pass: 'alxu pxyc ptjd tded'       // Mật khẩu ứng dụng 16 ký tự
     }
 });
 
 module.exports = {
-    // Hàm gửi Email dạng Promise chuẩn để code Backend bắt lỗi được bằng await
+    // Hàm gửi Email dạng Promise chuẩn để log lỗi chạy ngầm mượt mà
     sendMail: (to, subject, text) => {
         return new Promise((resolve, reject) => {
             transporter.sendMail({
