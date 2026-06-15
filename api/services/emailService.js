@@ -1,10 +1,12 @@
 const nodemailer = require('nodemailer');
 
-// Thay đổi cấu hình dùng trực tiếp IPv4 của Gmail nhằm triệt tiêu hoàn toàn lỗi ENETUNREACH trên Render Free
+// Cấu hình ép buộc sử dụng kết nối IPv4 (family: 4) để khắc phục triệt để lỗi ENETUNREACH trên Render
 const transporter = nodemailer.createTransport({
-    host: '74.125.200.108', // Địa chỉ IPv4 trực tiếp của máy chủ smtp.gmail.com
+    host: 'smtp.gmail.com', // Dùng lại tên miền chuẩn của Gmail
     port: 465,
-    secure: true, // Cổng 465 bắt buộc cấu hình secure là true
+    secure: true, // Cổng 465 yêu cầu secure là true
+    // Ép buộc kết nối ở tầng Socket của hệ thống
+    family: 4,    // 4 = Cưỡng chế chỉ sử dụng IPv4; loại bỏ hoàn toàn IPv6
     auth: {
         user: 'tungpham01235@gmail.com', // Email của bạn
         pass: 'alxu pxyc ptjd tded'       // Mật khẩu ứng dụng 16 ký tự
@@ -12,7 +14,7 @@ const transporter = nodemailer.createTransport({
 });
 
 module.exports = {
-    // Hàm gửi Email dạng Promise chuẩn để log lỗi chạy ngầm mượt mà
+    // Hàm gửi Email dạng Promise chuẩn để chạy ngầm
     sendMail: (to, subject, text) => {
         return new Promise((resolve, reject) => {
             transporter.sendMail({
