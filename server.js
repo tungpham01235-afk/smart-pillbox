@@ -1,31 +1,41 @@
-require('dotenv').config(); // Load cấu hình từ file .env
-const express = require('express');
-const cors = require('cors'); // 1. Khai báo thư viện CORS để sửa lỗi chặn trình duyệt
-const app = express();
+require('dotenv').config();
+const http = require('http');
+const mongoose = require('mongoose');
+const authController = require('./controllers/authController'); // Giả sử bạn để file ở đây
 
-const port = process.env.PORT || 3000;
+mongoose.connect(process.env.MONGODB_URI)
+    .then(() => console.log('✅ Connected to MongoDB'))
+    .catch(err => console.error('❌ DB Error:', err));
 
-// Kết nối Cơ sở dữ liệu MongoDB thông qua file cấu hình riêng
-const db = require('./api/db');
+const server = http.createServer((req, res) => {
+    // Thiết lập CORS header cho mọi request
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    
+    if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
 
-// 2. Kích hoạt Middleware CORS (Bắt buộc phải đặt TRƯỚC khi định nghĩa routes)
-app.use(cors()); 
+    // Xử lý Body của request
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString(); });
+    req.on('end', () => {
+        const data = body ? JSON.parse(body) : {};
+        req.body = data;
 
-// Middleware hỗ trợ đọc và bóc tách dữ liệu JSON gửi từ App lên
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-app.use(express.static(__dirname));
-
-// Nhúng toàn bộ bản đồ đường dẫn API vào server
-let routes = require('./api/routes');
-routes(app);
-
-// Xử lý bảo mật: Nếu người dùng/App gọi sai đường dẫn thì báo lỗi 404
-app.use(function(req, res) {
-    res.status(404).send({ url: req.originalUrl + ' not found' });
+        // Routing thủ công
+        if (req.url === '/api/register' && req.method === 'POST') {
+            authController.register(req, res);
+        } else if (req.url === '/api/verify-otp' && req.method === 'POST') {
+            authController.verifyOTP(req, res);
+        } else if (req.url === '/api/login' && req.method === 'POST') {
+            authController.login(req, res);
+        } else {
+            res.writeHead(404);
+            res.end(JSON.stringify({ message: 'Not Found' }));
+        }
+    });
 });
 
-// Bật máy chủ lắng nghe kết nối
-app.listen(port, () => {
-    console.log('🚀 RESTful API Smart Pillbox Server started on port: ' + port);
+server.listen(process.env.PORT || 3000, () => {
+    console.log(`🚀 Node.js Server running on port ${process.env.PORT || 3000}`);
 });
